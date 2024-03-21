@@ -1,0 +1,65 @@
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+int main() {
+	printf("\n\t\tSHOP OVER RS.3000 AND ENJOY 10%% DISCOUNT\n\n");
+	int item_num, T_shirts, shirts, watches;
+
+	printf("Enter the total number of items purchased by the customer: ");
+	scanf("%d", &item_num);
+	printf("Number of T-shirts purchased: ");
+	scanf("%d", &T_shirts);
+	printf("Number of Formal Shirts purchased: ");
+	scanf("%d", &shirts);
+	printf("Number of Wrist watches purchased: ");
+	scanf("%d", &watches);
+
+	int array[2]= {0,0};
+	int fd1[2], fd2[2];
+	pipe(fd1);
+	pipe(fd2);
+	int a= fork();
+	if(a > 0) {
+		wait(NULL);
+
+		close(fd2[1]);
+		read(fd2[0], array, sizeof(array));
+		close(fd2[0]);
+		printf("Total amount: Rs.%d\n", array[0]);
+		printf("Customer provided: Rs.%d\n\n", array[0]);
+		printf("Congratulations! You have purchased items of over Rs.3000, Enjoy the\n10%% discount on total.\n\n");
+		printf("Amount returned to customer: Rs.%d\n\n", array[1]);
+	}
+	else if(a == 0) {
+		printf("\nChild: pid=%d ppid=%d\n", getpid(), getppid());
+		array[0] += (T_shirts*500) + (shirts*1000) + (watches*500);
+
+		int b= fork();
+		if(b > 0) {
+			close(fd1[0]);
+			write(fd1[1], &array[0], sizeof(int));
+			close(fd1[1]);
+			wait(NULL);
+		}
+		else {
+			printf("Grandchild: pid=%d ppid=%d\n\n", getpid(), getppid());
+			close(fd1[1]);
+			read(fd1[0], &array[0], sizeof(int));
+			close(fd1[0]);
+			
+			array[1]= array[0] * 0.1;
+			
+			close(fd2[0]);
+			write(fd2[1], array, sizeof(array));
+			close(fd2[1]);
+		}
+	}
+	else {
+		printf("Unsuccesful child process creation.\n");
+		exit(0);
+	}
+	return 0;
+}
